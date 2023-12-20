@@ -2,7 +2,7 @@
 
 class Scheme {
     
-    constructor(bundle, numberOfUnits, length=0, frequency=0, pool=0, reserve=0, serviceManagement=0, setup=0, schoolManagement=0, deposit=0, numberOfCollections=0){
+    constructor(bundle, numberOfUnits, length=0, frequency=0, pool=0, reserve=0, serviceManagement=0, setup=0, schoolManagement=0, deposit=0, numberOfCollections=0, manualLeaseCost=0){
         // case where scheme is manually defined
         this.bundle = bundle;
         this.numberOfUnits = numberOfUnits || 1;
@@ -25,6 +25,7 @@ class Scheme {
         this.initalSilverwingFeeSaving = 0
         this.discount = 0
         this.percentageReceiving = 0
+        this.manualLeaseCost = manualLeaseCost;
     }
 
 
@@ -38,7 +39,8 @@ class Scheme {
     }
     updateSchemeWithFormOneData(formData, advanceArrears){
         this.length = parseFloat(formData.get("leaseLength"));
-        this.frequency = parseFloat(formData.get("frequency"))
+        this.frequency = parseFloat(formData.get("frequency"));
+        this.manualLeaseCost = (parseFloat(formData.get("monthlyLeaseCost")) / this.numberOfUnits) || 0;
         this.pool = parseFloat(formData.get("pool")) || 0;
         this.advanceArrears = advanceArrears;
         this.leaseType = leaseType;
@@ -105,7 +107,11 @@ class Scheme {
 
 
     leaseRate(){
+        if (this.manualLeaseCost > 0) {
+            return (this.manualLeaseCost / this.bundle.totalCost())
+        } else {
         return this.lease.leaseRates[this.paymentTiming()][this.leaseType][this.schoolType][this.advanceArrears][this.length-2]/1000
+        }
     }
 
     serviceRate(){
@@ -116,8 +122,15 @@ class Scheme {
         }
     }
     
-    leaseCost(){
-        return (this.leaseRate() * this.bundle.totalCost())
+    leaseCost() {
+        // Use the manual lease cost if it's provided and greater than zero
+        if (this.manualLeaseCost > 0) {
+            console.log("Using manual lease cost")
+            return this.manualLeaseCost;
+        }
+
+        // Otherwise, fall back to the existing lease rate calculation
+        return this.leaseRate() * this.bundle.totalCost();
     }
 
     serviceCost(){
@@ -274,6 +287,10 @@ class Scheme {
                 <option value="12">Annually</option>
             </select>`
         }
+            cardBodyOne.innerHTML += `<div class="form-floating mb-3">
+                                <input id="monthlyLeaseCostField" name="monthlyLeaseCost" type="number" class="form-control" placeholder="Monthly Lease Cost..">
+                                <label for="monthlyLeaseCostField">Lease Cost Per Period (Optional)</label>
+                            </div>`
             cardBodyOne.innerHTML += `<div class="input-group mb-3 flex-nowrap"">
                 <div class="form-floating">
                     <input name="pool" id="poolField" type="number" class="form-control" placeholder="Pool" step="0.01">
@@ -1145,6 +1162,9 @@ class Scheme {
             <td>
                 Supplier
             </td>
+            <td>
+                    Outright
+            </td>
             <td>£`+ (this.leaseSetup).toFixed(2) +
             `</td>
             <td>£`+(this.leaseSetup*1.2).toFixed(2) +
@@ -1171,9 +1191,9 @@ class Scheme {
                 <td style="border-bottom: 2px solid black;border-top: 2px solid black;">
                     -
                 </td>
-                <td style="border-bottom: 2px solid black;border-top: 2px solid black;"><b>£`+ (this.bundle.outrightLeaseCost()+this.deposit+0.8).toFixed(2) +
+                <td style="border-bottom: 2px solid black;border-top: 2px solid black;"><b>£`+ (this.leaseSetup+(this.originalDeposit)+0.8).toFixed(2) +
                 `</b></td>
-                <td style="border-bottom: 2px solid black;border-top: 2px solid black;"><b>£`+((this.bundle.outrightLeaseCost()+ this.deposit+0.8)*1.2).toFixed(2) +
+                <td style="border-bottom: 2px solid black;border-top: 2px solid black;"><b>£`+((this.leaseSetup+ (this.originalDeposit)+0.8)*1.2).toFixed(2) +
                 `</b></td>
                 </tr>`
             
@@ -1214,18 +1234,18 @@ class Scheme {
 
     generatePDF(element) {
         let pdf = window.jspdf;
-        let header = new Image();
-        header.src = "EDGEheader.png"
-        let footer = new Image()
-        footer.src = "EDGEfooter.png"
+        // let header = new Image();
+        // header.src = "EDGEheader.png"
+        // let footer = new Image()
+        // footer.src = "EDGEfooter.png"
 
         
         const doc = new pdf.jsPDF('p', 'pt', [595.28,  841.89]);
         const numPages = 1;
         doc.html(element, {
             callback: function (doc) {
-              doc.addImage(header, 'png', 0, 0, 595.28, 250)
-              doc.addImage(footer, 'png', 0, 790, 595.28, 50)
+            //   doc.addImage(header, 'png', 0, 0, 595.28, 250)
+            //   doc.addImage(footer, 'png', 0, 790, 595.28, 50)
               let pageCount = doc.internal.getNumberOfPages();
               const initialCount = pageCount
               for(let i = 0; i < initialCount-numPages; i++){

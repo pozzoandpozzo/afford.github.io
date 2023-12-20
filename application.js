@@ -388,7 +388,7 @@ document.getElementById("addBundle").addEventListener("click", (e) => {
             }
               
             
-            /*
+            
             let PDF = document.createElement("input");
             PDF.id = "pdfButton"
             PDF.type = "submit";
@@ -402,7 +402,7 @@ document.getElementById("addBundle").addEventListener("click", (e) => {
                 e.preventDefault();
                 scheme.generatePDF(col2);
             });
-            */
+            
             // price 1- outright cost = Bundle Cost + school management cost + pool cost + reserve fund + managed service cost + set up fee + silverwing collection fee
 
         });
